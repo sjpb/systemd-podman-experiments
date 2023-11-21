@@ -2,19 +2,36 @@
   become: yes
   gather_facts: no
   tasks:
-    - name: Install podman
+    - name: Install podman and machinectl commands
       dnf:
-        name: podman
+        name:
+          - podman
+          - systemd-container
     - name: Create podman user
       user:
         name: podman
     - name: Enable lingering for user
       command:
         cmd: loginctl enable-linger podman
-    # NB: the below doesn't work
-    #   shell:
-    #     cmd: mkdir -p /var/lib/systemd/linger && touch /var/lib/systemd/linger/podman
-    #     creates: /var/lib/systemd/linger/podman
+    # # NB: the below doesn't work
+    # #   shell:
+    # #     cmd: mkdir -p /var/lib/systemd/linger && touch /var/lib/systemd/linger/podman
+    # #     creates: /var/lib/systemd/linger/podman
+    - name: Ensure logging for systemd user units
+      # see https://unix.stackexchange.com/a/486566/365795
+      community.general.ini_file:
+        path: /etc/systemd/journald.conf
+        section: Journal
+        option: Storage
+        value: persistent
+        no_extra_spaces: true
+      register: journald
+    
+    - name: Restart journald
+      command:
+        cmd: systemctl restart systemd-journald
+      when: journald.changed
+    
     - name: Create user service directory
       file:
         path: /home/podman/.config/systemd/user/
@@ -25,12 +42,24 @@
         src: apache.service.j2
         dest: /home/podman/.config/systemd/user/apache.service # TODO: not sure if this is best path?
       become_user: podman
+    - name: Reload systemd daemon
+      command:
+        cmd: /usr/bin/machinectl shell podman@ /bin/systemctl --user daemon-reload
     - name: Start service
-      systemd:
-        name: apache
-        state: started
-        daemon_reload: yes
-        scope: user
-      become_user: podman
-      environment:
-        XDG_RUNTIME_DIR: /run/user/1001 # podman TODO: don't hardcode
+      command:
+        cmd: /usr/bin/machinectl shell podman@ /bin/systemctl --user start apache
+      # TODO: make idempotent?
+      # systemd:
+      #   name: apache
+      #   state: started
+      #   daemon_reload: yes
+      #   scope: user
+      # become_user: podman
+      # environment:
+      #   XDG_RUNTIME_DIR: /run/user/1001 # podman TODO: don't hardcode
+    - name: Check apache works
+      command:
+        cmd: curl localhost:8080
+      register: curl
+    - debug:
+        var: curl.stdout
