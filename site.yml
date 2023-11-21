@@ -11,15 +11,16 @@
     - name: Create podman user
       user:
         name: podman
+      register: user
 
     - name: Check if user is lingering
       stat:
-        path: "/var/lib/systemd/linger/podman"
+        path: "/var/lib/systemd/linger/{{ user.name }}"
       register: linger
 
     - name: Enable lingering for user
       command:
-        cmd: loginctl enable-linger podman
+        cmd: loginctl enable-linger {{ user.name }}
       when: not linger.stat.exists
 
     - name: Enable logging for systemd user units
@@ -39,15 +40,15 @@
 
     - name: Create user service directory
       file:
-        path: /home/podman/.config/systemd/user/
+        path: /home/{{ user.name }}/.config/systemd/user/
         state: directory
-      become_user: podman # required to get ownership/permissions on .config/ right
+      become_user: "{{ user.name }}" # required to get ownership/permissions on .config/ right
 
     - name: Create service
       template:
         src: apache.service.j2
-        dest: /home/podman/.config/systemd/user/apache.service # TODO: not sure if this is best path?
-      become_user: podman
+        dest: /home/{{ user.name }}/.config/systemd/user/apache.service # TODO: not sure if this is best path?
+      become_user: "{{ user.name }}"
       register: apache_service
 
     - name: Start service
@@ -57,7 +58,7 @@
         enabled: yes
         daemon_reload: "{{ apache_service.changed }}"
         scope: user
-      become_user: podman
+      become_user: "{{ user.name }}"
 
     - name: Check apache works
       command:
