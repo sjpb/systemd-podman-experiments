@@ -58,8 +58,6 @@
         daemon_reload: "{{ apache_service.changed }}"
         scope: user
       become_user: podman
-      environment:
-        XDG_RUNTIME_DIR: /run/user/1001 # podman TODO: don't hardcode
 
     - name: Check apache works
       command:
