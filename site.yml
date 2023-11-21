@@ -42,21 +42,23 @@
         src: apache.service.j2
         dest: /home/podman/.config/systemd/user/apache.service # TODO: not sure if this is best path?
       become_user: podman
-    - name: Reload systemd daemon
-      command:
-        cmd: /usr/bin/machinectl shell podman@ /bin/systemctl --user daemon-reload
+
+    # - name: Reload systemd daemon
+    #   command:
+    #     cmd: /usr/bin/machinectl shell podman@ /bin/systemctl --user daemon-reload
     - name: Start service
-      command:
-        cmd: /usr/bin/machinectl shell podman@ /bin/systemctl --user start apache
-      # TODO: make idempotent?
-      # systemd:
-      #   name: apache
-      #   state: started
-      #   daemon_reload: yes
-      #   scope: user
-      # become_user: podman
-      # environment:
-      #   XDG_RUNTIME_DIR: /run/user/1001 # podman TODO: don't hardcode
+    #   command:
+    #     cmd: /usr/bin/machinectl shell podman@ /bin/systemctl --user start apache
+      systemd:
+        name: apache
+        state: started
+        enabled: yes
+        daemon_reload: yes # TODO: make idempotent
+        scope: user
+      # become_method: machinectl
+      become_user: podman
+      environment:
+        XDG_RUNTIME_DIR: /run/user/1001 # podman TODO: don't hardcode
     - name: Check apache works
       command:
         cmd: curl localhost:8080
