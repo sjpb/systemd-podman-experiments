@@ -13,7 +13,7 @@ ExecStart=/usr/bin/podman run \
         --rm \
         --sdnotify=conmon \
         --replace \
-        -dit \
+        -d \
         --name apache \
         -p 8080:80 docker.io/library/httpd:2.4
 ExecStop=/usr/bin/podman stop \
@@ -25,6 +25,8 @@ ExecStopPost=/usr/bin/podman rm \
         --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
+User=podman
+Group=podman
 
 [Install]
 WantedBy=default.target

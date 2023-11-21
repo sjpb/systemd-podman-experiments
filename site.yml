@@ -12,6 +12,11 @@
       template:
         src: apache.service.j2
         dest: /etc/systemd/system/apache.service
+      register: service
+    - name: Reload systemd
+      command:
+        cmd: systemctl daemon-reload
+      when: service.changed
     - name: Start service
       systemd:
         name: apache
