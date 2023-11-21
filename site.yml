@@ -8,16 +8,29 @@
     - name: Create podman user
       user:
         name: podman
+    - name: Enable lingering for user
+      command:
+        cmd: loginctl enable-linger podman
+    # NB: the below doesn't work
+    #   shell:
+    #     cmd: mkdir -p /var/lib/systemd/linger && touch /var/lib/systemd/linger/podman
+    #     creates: /var/lib/systemd/linger/podman
+    - name: Create user service directory
+      file:
+        path: /home/podman/.config/systemd/user/
+        state: directory
+      become_user: podman # required to get ownership/permissions on .config/ right
     - name: Create service
       template:
         src: apache.service.j2
-        dest: /etc/systemd/system/apache.service
-      register: service
-    - name: Reload systemd
-      command:
-        cmd: systemctl daemon-reload
-      when: service.changed
+        dest: /home/podman/.config/systemd/user/apache.service # TODO: not sure if this is best path?
+      become_user: podman
     - name: Start service
       systemd:
         name: apache
         state: started
+        daemon_reload: yes
+        scope: user
+      become_user: podman
+      environment:
+        XDG_RUNTIME_DIR: /run/user/1001 # podman TODO: don't hardcode
