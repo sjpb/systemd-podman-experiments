@@ -13,15 +13,10 @@
         name: podman
       register: user
 
-    - name: Check if user is lingering
-      stat:
-        path: "/var/lib/systemd/linger/{{ user.name }}"
-      register: linger
-
     - name: Enable lingering for user
       command:
         cmd: loginctl enable-linger {{ user.name }}
-      when: not linger.stat.exists
+        creates: "/var/lib/systemd/linger/{{ user.name }}"
 
     - name: Enable logging for systemd user units
       # see https://unix.stackexchange.com/a/486566/365795
@@ -32,7 +27,7 @@
         value: persistent
         no_extra_spaces: true
       register: journald
-    
+
     - name: Restart journald
       command:
         cmd: systemctl restart systemd-journald
