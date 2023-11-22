@@ -107,7 +107,20 @@ error:
 
     No journal files were opened due to insufficient permissions.
 
+A futher tweak is to add `--userns=auto` to the podman command line, so that the 
+container runs in its own namespace. To be able to access mounted volumes either:
+- Use the `U` flag to recursively chown on startup,
+- Add a supplementary group to the `podman` user, add that as the group on the host 
+  volume directory and leak the group into the container using
+  [`--group-add=keep-groups`](https://docs.podman.io/en/latest/markdown/podman-run.1.html#group-add-group-keep-groups) 
+  on the podman run command line.
 
+In the latter case all containers run by the `podman` user will have access to each 
+other's storage; in the former option they won't but there is the potential for 
+performance/timeout problems on startup.
+
+Testing showed that `--userns=auto` worked with RL9.2 but not with RL8.2. It appears 
+that may be an apache-container specific problem.
 
 ## Useful Links
 
