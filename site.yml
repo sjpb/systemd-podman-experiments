@@ -2,6 +2,9 @@
   become: yes
   gather_facts: no
   tasks:
+    - name: Wait for connection
+      wait_for_connection:
+
     - name: Install podman and machinectl commands
       dnf:
         name:
@@ -49,7 +52,7 @@
     - name: Start service
       systemd:
         name: apache
-        state: started
+        state: "{{ service_state | default('restarted' if apache_service.changed else 'started') }}"
         enabled: yes
         daemon_reload: "{{ apache_service.changed }}"
         scope: user

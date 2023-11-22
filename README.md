@@ -1,6 +1,14 @@
 This repo demonstrates running a containerised service using podman, without running
 either podman or the service as root.
 
+Unless otherwise stated everything applies to
+- RockyLinux 8.9 (Rocky-8-GenericCloud-Base-8.9-20231119.0.x86_64.qcow2) with:
+  - systemd 239
+  - podman 4.4.1
+- RockyLinux 9.3 (Rocky-9-GenericCloud-Base-9.3-20231113.0.x86_64.qcow2) with:
+  - systemd 252
+  - podman 4.6.1
+
 An initial container was created with:
 
     [rocky]$ podman run -dit --name apache -p 8080:80 docker.io/library/httpd:2.4
@@ -51,11 +59,11 @@ login session:
         Main PID: 1979 (conmon)
         ...
 
-A third should be possible:
+3. For RockyLinux 9.3 (systemd 252):
 
     [rocky ~]$ systemctl --user -M podman@ status apache
 
-But this requires systemd >= 247 and RockyLinux 8.8 provides systemd 239.
+    this requires systemd >= 247 and RockyLinux 8.9 provides systemd 239.
 
 In terms of Ansible control of user units, using:
 
@@ -65,7 +73,7 @@ In terms of Ansible control of user units, using:
     become_user: podman
 
 appears to be sufficient (i.e. setting `XDG_RUNTIME_DIR` is not required). While there 
-is an ansible become plugin for machinectl it is not suitable here as it only works for 
+is an Ansible "become plugin" for machinectl it is not suitable here as it only works for 
 root user ([docs](https://docs.ansible.com/ansible/latest/collections/community/general/machinectl_become.html#notes)), 
 at least without additional polkit rules.
 
@@ -89,7 +97,7 @@ the following:
 
 2. Using `machinectl`:
 
-        [rocky ~]$ sudo machinectl shell podman@.host
+        [rocky ~]$ sudo machinectl shell podman@
         Connected to the local host. Press ^] three times within 1s to exit session.
         [podman ~]$ journalctl --user -u apache.service
         ...
@@ -99,3 +107,13 @@ error:
 
     No journal files were opened due to insufficient permissions.
 
+
+
+## Useful Links
+
+- https://github.com/containers/podman/discussions/20573
+- https://github.com/containers/podman/discussions/15155
+- https://github.com/containers/podman/issues/17753
+- https://github.com/containers/podman/discussions/9642
+- https://github.com/containers/podman/issues/13236
+- https://www.redhat.com/sysadmin/rootless-podman-user-namespace-modes
